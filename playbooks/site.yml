@@ -1,0 +1,8 @@
+---
+- name: START INVENTORY CONFIGURATION
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - common
+    - podman

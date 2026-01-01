@@ -1,0 +1,14 @@
+[project]
+name = "ansible-homelab"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+dependencies = [
+  "ansible-core>=2.20",
+  "ansible-lint",
+  "yamllint",
+  "jmespath",
+  "netaddr",
+  "pywinrm[credssp]",
+  "requests"
+]

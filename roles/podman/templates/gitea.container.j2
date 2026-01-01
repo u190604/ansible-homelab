@@ -1,0 +1,23 @@
+[Unit]
+Description=Gitea Git Service
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image={{ gitea_image }}
+ContainerName=gitea
+
+Volume={{ gitea_volume_name }}:/data:Z
+
+PublishPort={{ gitea_http_port }}:3000
+PublishPort={{ gitea_ssh_port }}:22
+
+Environment=USER_UID=1000
+Environment=USER_GID=1000
+
+[Service]
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

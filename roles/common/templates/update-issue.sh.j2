@@ -1,0 +1,33 @@
+#!/bin/bash
+set -euo pipefail
+
+# If systemd passes ENV_NAME, it wins; otherwise fall back to Ansible-provided env_name.
+ENV_NAME="${ENV_NAME:-{{ env_name | default('UNKNOWN') }}}"
+
+HOST="$(hostname)"
+IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+CPU="$(nproc 2>/dev/null || echo N/A)"
+
+RAM_MB="$(free -m 2>/dev/null | awk '/^Mem:/ {print $2}')"
+if [[ -n "${RAM_MB:-}" ]]; then
+  RAM_GB="$(awk "BEGIN {printf \"%.1f\", ${RAM_MB}/1024}")"
+else
+  RAM_GB="N/A"
+fi
+
+DISK_LINE="$(df -hP / 2>/dev/null | awk 'NR==2 {print $2 " total, " $4 " free"}')"
+OS_NAME="$(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-Linux}")"
+
+cat > /etc/issue <<EOF
+========================================
+ ENV      : ${ENV_NAME}
+ Hostname : ${HOST}
+ IP       : ${IP:-N/A}
+ OS       : ${OS_NAME}
+ CPU      : ${CPU} vCPU
+ RAM      : ${RAM_GB} GB
+ Disk /   : ${DISK_LINE:-N/A}
+========================================
+EOF
+
+cp -f /etc/issue /etc/issue.net

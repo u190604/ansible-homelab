@@ -1,0 +1,7 @@
+---
+- name: START WINDOWS CONFIGURATION
+  hosts: windows
+  gather_facts: false
+  become: false
+  roles:
+    - windows_hyperv_host

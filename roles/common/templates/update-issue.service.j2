@@ -1,0 +1,12 @@
+[Unit]
+Description=Update login banner with hostname and system info
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=ENV_NAME={{ env_name | default('UNKNOWN') }}
+ExecStart=/usr/local/bin/update-issue.sh
+
+[Install]
+WantedBy=multi-user.target

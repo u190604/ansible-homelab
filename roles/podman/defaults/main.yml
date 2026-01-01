@@ -1,0 +1,34 @@
+---
+podman_package_list:
+  - podman
+  - podman-docker
+  - podman-quadlet
+  - containers-common
+  - shadow-utils
+  - slirp4netns
+  - fuse-overlayfs
+  - systemd-container
+  - buildah
+  - skopeo
+  - policycoreutils-python-utils
+
+podman_user: podman
+podman_group: "{{ podman_user }}"
+podman_home: /opt/podman
+
+# Rootless mapping range
+podman_subuid_start: 100000
+podman_subuid_count: 65536
+
+# Quadlet
+podman_enable_linger: true
+podman_prepare_quadlet_dir: True
+
+# --- Gitea ---
+gitea_enable_podman: true
+
+gitea_image: docker.gitea.com/gitea:1.25.3
+gitea_http_port: 3000
+gitea_ssh_port: 2222
+
+gitea_volume_name: gitea-data

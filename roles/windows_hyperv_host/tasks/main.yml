@@ -1,0 +1,6 @@
+---
+- name: WinRM configuration (for Ansible access)
+  ansible.builtin.import_tasks: winrm.yml
+
+- name: Install Hyper-V
+  ansible.builtin.import_tasks: hyperv.yml

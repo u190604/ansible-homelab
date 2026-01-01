@@ -1,0 +1,5 @@
+ansible-example.cfg
+ansible.log
+.vscode/
+.venv/
+collections/ansible_collections
