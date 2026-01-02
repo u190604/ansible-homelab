@@ -10,3 +10,6 @@ RUN dnf update -y && \
     dnf clean all && \
     groupadd --gid 1000 vscode && \
     useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode
+
+
+ENV ANSIBLE_CONFIG=/workspaces/ansible-homelab/ansible.cfg

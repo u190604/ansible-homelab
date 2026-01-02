@@ -5,8 +5,8 @@
   },
   "workspaceFolder": "/workspaces/ansible-homelab",
   "remoteUser": "vscode",
-
-  "postStartCommand": "mkdir -p /home/vscode/.codex || true && cd /workspaces/ansible-homelab && uv sync && source ./.venv/bin/activate && uv run ansible-galaxy collection install -r collections/requirements.yml -p collections/",
+  
+  "postStartCommand": "mkdir -p /home/vscode/.codex || true && cd /workspaces/ansible-homelab && uv sync && source ./.venv/bin/activate && uv run ansible-galaxy collection install -r collections/requirements.yml -p collections/ && git config --global --add safe.directory ${containerWorkspaceFolder}",
   "mounts": [
     "source=${env:USERPROFILE}\\.codex,target=/home/vscode/.codex,type=bind,consistency=cached"
   ],
