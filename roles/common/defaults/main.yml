@@ -11,4 +11,3 @@ dnf_common_packages:
   - mc
 
 apt_common_packages: []
-
