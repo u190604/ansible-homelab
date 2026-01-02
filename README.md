@@ -43,3 +43,7 @@ run playbook in dev only
 ```
 uv run ansible-playbook -i inventory/hosts.yml playbooks/site.yml -vv -K --limit dev
 ```
+dry run playbook in dev (no changes applied)
+```
+uv run ansible-playbook -i inventory/hosts.yml playbooks/site.yml -vv -K --limit dev --check --diff
+```
