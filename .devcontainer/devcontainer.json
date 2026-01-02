@@ -23,7 +23,7 @@
        },
        "extensions": [
          "ms-python.python",
-  //       "redhat.ansible",
+         "redhat.vscode-yaml",
          "openai.chatgpt"
        ]
      }
