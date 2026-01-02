@@ -1,0 +1,31 @@
+{
+  "name": "ansible-homelab (devcontainer)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/ansible-homelab",
+  "remoteUser": "vscode",
+
+  "postStartCommand": "mkdir -p /home/vscode/.codex || true && cd /workspaces/ansible-homelab && uv sync && source ./.venv/bin/activate && uv run ansible-galaxy collection install -r collections/requirements.yml -p collections/",
+  "mounts": [
+    "source=${env:USERPROFILE}\\.codex,target=/home/vscode/.codex,type=bind,consistency=cached"
+  ],
+  "forwardPorts": [1455],
+  // "features": {
+  //   "ghcr.io/devcontainers/features/common-utils:2": {}
+  // }
+  // ,
+  "customizations": {
+     "vscode": {
+       "settings": {
+         "git.autorefresh": true,
+         "files.useExperimentalFileWatcher": true
+       },
+       "extensions": [
+         "ms-python.python",
+  //       "redhat.ansible",
+         "openai.chatgpt"
+       ]
+     }
+  }
+}
