@@ -1,5 +1,6 @@
 ansible-example.cfg
-ansible.log
+*.log
 .vscode/
 .venv/
 collections/ansible_collections
+*.iso
