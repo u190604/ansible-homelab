@@ -2,6 +2,8 @@ FROM ghcr.io/almalinux/9-base:9.7
 
 RUN dnf update -y && \
     dnf install -y \
+        xorriso \
+        pykickstart \
         git \
         python3.12 \
         python3.12-pip && \

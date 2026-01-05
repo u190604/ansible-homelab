@@ -17,10 +17,13 @@
   // ,
   "customizations": {
      "vscode": {
-       "settings": {
-         "git.autorefresh": true,
-         "files.useExperimentalFileWatcher": true
-       },
+      "settings": {
+        "git.autorefresh": true,
+        "files.useExperimentalFileWatcher": false,
+        "files.watcherExclude": {
+          "/home/vscode/.codex/**": true
+        }
+      },
        "extensions": [
          "ms-python.python",
          "redhat.vscode-yaml",
