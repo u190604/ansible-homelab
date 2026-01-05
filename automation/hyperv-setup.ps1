@@ -12,9 +12,154 @@ Notes:
 #>
 
 # GLOBAL PARAMS
+$VMName      = $null
+$ISOPath     = $null
+$NetworkMode = "DefaultSwitch"
 $VMPath        = "C:\VM";
-$VHDPath       = "$VMPath\Disks\"
-$VHDSizeGB     = 40
+$VHDDir        = "$VMPath\Disks"
+$VHDPath       = $null
+$VHDSizeGB     = 60
+$CPUCount        = 2
+$MemoryStartupGB = 4
+$MemoryMinGB     = 2
+$MemoryMaxGB     = 8
+$UseStaticMac    = $true
+$MacAddress      = $null
+
+function Get-RequiredInput([string]$PromptText) {
+    do {
+        $value = Read-Host $PromptText
+    } while ([string]::IsNullOrWhiteSpace($value))
+    return $value
+}
+
+function Get-AvailableVMName([string]$PromptText) {
+    do {
+        $name = Get-RequiredInput $PromptText
+        $existing = Get-VM -Name $name -ErrorAction SilentlyContinue
+        if ($existing) {
+            Write-Host "VM name '$name' already exists." -ForegroundColor Yellow
+            $choice = Read-Host "Choose: (D)elete existing VM, (N)ew name"
+            switch ($choice.ToLower()) {
+                "d" {
+                    Write-Host "Deleting VM '$name'..." -ForegroundColor Cyan
+                    Remove-VM -Name $name -Force -Confirm:$false
+                    return $name
+                }
+                "n" {
+                    $existing = $true
+                }
+                default {
+                    Write-Host "Invalid choice. Enter D or N." -ForegroundColor Yellow
+                    $existing = $true
+                }
+            }
+        }
+    } while ($existing)
+    return $name
+}
+
+function New-MacAddress {
+    $prefix = 0x00, 0x15, 0x5D
+    $suffix = @(
+        Get-Random -Minimum 0x00 -Maximum 0xFF
+        Get-Random -Minimum 0x00 -Maximum 0xFF
+        Get-Random -Minimum 0x00 -Maximum 0xFF
+    )
+    return ("{0:X2}-{1:X2}-{2:X2}-{3:X2}-{4:X2}-{5:X2}" -f ($prefix + $suffix))
+}
+
+function Normalize-PathInput([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $Path }
+    $clean = $Path.Trim()
+    if (
+        ($clean.StartsWith('"') -and $clean.EndsWith('"')) -or
+        ($clean.StartsWith("'") -and $clean.EndsWith("'"))
+    ) {
+        $clean = $clean.Substring(1, $clean.Length - 2)
+    }
+    return $clean
+}
+
+function Resolve-FilePath([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path)) { throw "Non empty path is required." }
+    $clean = Normalize-PathInput $Path
+    $item = Get-Item -LiteralPath $clean -ErrorAction Stop
+    if ($item.PSIsContainer) { throw "Path provided points to a directory: $clean" }
+    return $item
+}
+
+function Resolve-VHDPathConflict([string]$Path, [string]$DefaultDir) {
+    $current = $Path
+    while (Test-Path -LiteralPath $current) {
+        Write-Host "VHDX already exists: $current" -ForegroundColor Yellow
+        $choice = Read-Host "Choose: (O)verwrite, (R)euse, (N)ew name"
+        switch ($choice.ToLower()) {
+            "o" {
+                Remove-Item -LiteralPath $current -Force
+                return $current
+            }
+            "r" {
+                return $current
+            }
+            "n" {
+                $newName = Get-RequiredInput "Enter new VHDX name or full path"
+                $clean = Normalize-PathInput $newName
+                if (-not [System.IO.Path]::IsPathRooted($clean)) {
+                    $clean = Join-Path $DefaultDir $clean
+                }
+                if ([System.IO.Path]::GetExtension($clean) -eq "") {
+                    $clean = "$clean.vhdx"
+                }
+                $current = $clean
+            }
+            default {
+                Write-Host "Invalid choice. Enter O, R, or N." -ForegroundColor Yellow
+            }
+        }
+    }
+    return $current
+}
+
+function Get-VHDSizeGB([int]$DefaultSizeGB) {
+    do {
+        $choice = Read-Host "Use default disk size ${DefaultSizeGB}GB? (Y/N)"
+        switch ($choice.ToLower()) {
+            "y" { return $DefaultSizeGB }
+            "n" {
+                do {
+                    $inputSize = Read-Host "Enter disk size in GB (10-100)"
+                    if ([int]::TryParse($inputSize, [ref]$size) -and $size -ge 10 -and $size -le 100) {
+                        return $size
+                    }
+                    Write-Host "Invalid size. Enter a number between 10 and 100." -ForegroundColor Yellow
+                } while ($true)
+            }
+            default { Write-Host "Invalid choice. Enter Y or N." -ForegroundColor Yellow }
+        }
+    } while ($true)
+}
+
+function Get-FreeScsiSlot([string]$VMName) {
+    $usedDevices = @()
+    $usedDevices += Get-VMHardDiskDrive -VMName $VMName -ErrorAction SilentlyContinue
+    $usedDevices += Get-VMDvdDrive -VMName $VMName -ErrorAction SilentlyContinue
+
+    foreach ($controller in 0..3) {
+        $usedLocations = $usedDevices |
+            Where-Object { $_.ControllerNumber -eq $controller } |
+            Select-Object -ExpandProperty ControllerLocation
+        $freeLocation = (0..63 | Where-Object { $_ -notin $usedLocations }) | Select-Object -First 1
+        if ($null -ne $freeLocation) {
+            return @{
+                ControllerNumber   = $controller
+                ControllerLocation = $freeLocation
+            }
+        }
+    }
+
+    throw "No available SCSI controller slots for VM: $VMName"
+}
 
 
 function Assert-Admin {
@@ -29,6 +174,21 @@ function Assert-Windows11 {
     if (-not $build -or $build -lt 22000) {
         throw "This script requires Windows 11. Detected build: $build"
     } 
+}
+
+function Confirm-HyperVPresent {
+    $hv = Get-WindowsOptionalFeature -Online -FeatureName "Microsoft-Hyper-V-All"
+    if ($hv.State -eq "Enabled") {
+        return $true
+    }
+    do {
+        $choice = Read-Host "Hyper-V is not enabled. Continue and enable it? (Y/N)"
+        switch ($choice.ToLower()) {
+            "y" { return $true }
+            "n" { return $false }
+            default { Write-Host "Please enter Y or N." -ForegroundColor Yellow }
+        }
+    } while ($true)
 }
 
 function Enable-HyperV {
@@ -60,8 +220,32 @@ function Enable-HyperV {
     Write-Host "Hyper-V enablement complete. If this is the first run, a reboot may be required." -ForegroundColor Yellow
 }
 
+function Show-HostBanner {
+    $os = Get-CimInstance -ClassName Win32_OperatingSystem
+    $cpu = Get-CimInstance -ClassName Win32_Processor | Select-Object -First 1
+    $memBytes = $os.TotalVisibleMemorySize * 1KB
+    $memGB = [math]::Round($memBytes / 1GB, 1)
+    $hostName = $env:COMPUTERNAME
+
+    Write-Host ""
+    Write-Host "Hyper-V Host Info" -ForegroundColor Cyan
+    Write-Host "  Hostname : $hostName"
+    Write-Host "  OS       : $($os.Caption) ($($os.Version))"
+    Write-Host "  CPU      : $($cpu.Name)"
+    Write-Host "  Memory   : $memGB GB"
+    Write-Host ""
+    Write-Host "Current VMs" -ForegroundColor Cyan
+    $vms = Get-VM -ErrorAction SilentlyContinue
+    if ($vms) {
+        $vms | Sort-Object Name | Format-Table -AutoSize Name, State, CPUUsage, MemoryAssigned
+    } else {
+        Write-Host "  No VMs found."
+    }
+    Write-Host ""
+}
+
 function Ensure-VMFolders {
-    New-Item -ItemType Directory -Force -Path @($VMPath, (Split-Path $VHDPath -Parent)) | Out-Null
+    New-Item -ItemType Directory -Force -Path @($VMPath, $VHDDir) | Out-Null
 }
 
 function New-OrUpdate-VM {
@@ -89,16 +273,18 @@ function New-OrUpdate-VM {
     # Create VHD if missing
     if (-not (Test-Path $VHDPath)) {
         Write-Host "Creating VHDX: $VHDPath ($VHDSizeGB GB)..." -ForegroundColor Cyan
-        New-VHD -Path $VHDPath -SizeBytes (${VHDSizeGB}GB) -Dynamic | Out-Null
+        New-VHD -Path $VHDPath -SizeBytes ($VHDSizeGB * 1GB) -Dynamic | Out-Null
     } else {
         Write-Host "VHDX exists: $VHDPath" -ForegroundColor Green
     }
 
     # Create or update VM
+    $isNewVM = $false
     $vm = Get-VM -Name $VMName -ErrorAction SilentlyContinue
     if (-not $vm) {
         Write-Host "Creating VM '$VMName' (Gen2)..." -ForegroundColor Cyan
-        $vm = New-VM -Name $VMName -Generation 2 -Path $VMPath -MemoryStartupBytes (${MemoryStartupGB}GB) -VHDPath $VHDPath -SwitchName $switchName
+        $vm = New-VM -Name $VMName -Generation 2 -Path $VMPath -MemoryStartupBytes ($MemoryStartupGB * 1GB) -VHDPath $VHDPath -SwitchName $switchName
+        $isNewVM = $true
     } else {
         Write-Host "VM already exists: $VMName" -ForegroundColor Green
         # Ensure NIC is connected to desired switch
@@ -114,18 +300,34 @@ function New-OrUpdate-VM {
 
     Set-VMMemory -VMName $VMName `
         -DynamicMemoryEnabled $true `
-        -MinimumBytes (${MemoryMinGB}GB) `
-        -StartupBytes (${MemoryStartupGB}GB) `
-        -MaximumBytes (${MemoryMaxGB}GB)
+        -MinimumBytes ($MemoryMinGB * 1GB) `
+        -StartupBytes ($MemoryStartupGB * 1GB) `
+        -MaximumBytes ($MemoryMaxGB * 1GB)
 
-    # Secure Boot: for most modern Linux, 'MicrosoftUEFICertificateAuthority' works.
+    # Secure Boot: try common templates; fall back to Off if unsupported.
     # If your distro ISO fails to boot, set SecureBoot off: Set-VMFirmware -VMName $VMName -EnableSecureBoot Off
-    Set-VMFirmware -VMName $VMName -EnableSecureBoot On -SecureBootTemplate "MicrosoftUEFICertificateAuthority"
+    try {
+        Set-VMFirmware -VMName $VMName -EnableSecureBoot On -SecureBootTemplate "MicrosoftUEFICertificateAuthority" -ErrorAction Stop
+    } catch {
+        Write-Warning "Secure Boot template 'MicrosoftUEFICertificateAuthority' not supported. Trying 'MicrosoftWindows'."
+        try {
+            Set-VMFirmware -VMName $VMName -EnableSecureBoot On -SecureBootTemplate "MicrosoftWindows" -ErrorAction Stop
+        } catch {
+            Write-Warning "Secure Boot templates not supported. Disabling Secure Boot."
+            Set-VMFirmware -VMName $VMName -EnableSecureBoot Off
+        }
+    }
+
+    # Disable checkpoints (snapshots) for this VM
+    Set-VM -VMName $VMName -CheckpointType Disabled
 
     # Attach ISO to DVD drive (create if missing)
     $dvd = Get-VMDvdDrive -VMName $VMName -ErrorAction SilentlyContinue
     if (-not $dvd) {
-        Add-VMDvdDrive -VMName $VMName -Path $ISOPath | Out-Null
+        $slot = Get-FreeScsiSlot $VMName
+        Add-VMDvdDrive -VMName $VMName -Path $ISOPath `
+            -ControllerNumber $slot.ControllerNumber `
+            -ControllerLocation $slot.ControllerLocation | Out-Null
     } else {
         Set-VMDvdDrive -VMName $VMName -Path $ISOPath | Out-Null
     }
@@ -137,12 +339,17 @@ function New-OrUpdate-VM {
 
     # Static MAC (optional)
     if ($UseStaticMac) {
-        $ad = Get-VMNetworkAdapter -VMName $VMName
-        if ($ad.MacAddressSpoofing -ne "Off") {
-            Set-VMNetworkAdapter -VMName $VMName -MacAddressSpoofing Off | Out-Null
+        if ($isNewVM -and [string]::IsNullOrWhiteSpace($StaticMac)) {
+            $MacAddress = New-MacAddress
         }
-        Set-VMNetworkAdapter -VMName $VMName -StaticMacAddress $StaticMac | Out-Null
-        Write-Host "Set static MAC: $StaticMac" -ForegroundColor Green
+        if (-not [string]::IsNullOrWhiteSpace($MacAddress)) {
+            $ad = Get-VMNetworkAdapter -VMName $VMName
+            if ($ad.MacAddressSpoofing -ne "Off") {
+                Set-VMNetworkAdapter -VMName $VMName -MacAddressSpoofing Off | Out-Null
+            }
+            Set-VMNetworkAdapter -VMName $VMName -StaticMacAddress $MacAddress | Out-Null
+            Write-Host "Set static MAC: $MacAddress" -ForegroundColor Green
+        }
     }
 
     # Useful integration services
@@ -157,7 +364,27 @@ function New-OrUpdate-VM {
 try {
     Assert-Windows11
     Assert-Admin
+    Show-HostBanner
+    if (-not (Confirm-HyperVPresent)) {
+        throw "Hyper-V not enabled. Aborting at user request."
+    }
     Enable-HyperV
+
+    if ([string]::IsNullOrWhiteSpace($VMName)) {
+        $VMName = Get-AvailableVMName "Enter VM name"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($VHDPath)) {
+        $VHDPath = Join-Path $VHDDir "$VMName.vhdx"
+    }
+    $VHDPath = Resolve-VHDPathConflict $VHDPath $VHDDir
+    $VHDSizeGB = Get-VHDSizeGB $VHDSizeGB
+
+    if ([string]::IsNullOrWhiteSpace($ISOPath)) {
+        $ISOPath = Get-RequiredInput "Enter full path to ISO file"
+    }
+    $isoPathObject = Resolve-FilePath $ISOPath
+    $ISOPath = $isoPathObject.FullName
 
     # If Hyper-V was just enabled, you may need to reboot before the next part works.
     # We'll still try to proceed; if it fails, reboot and re-run.
