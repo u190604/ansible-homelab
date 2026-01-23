@@ -148,3 +148,16 @@
     line: 'Banner /etc/issue.net'
     state: present
   notify: Restart sshd
+
+- name: Configure bash prompt for aglu user
+  ansible.builtin.lineinfile:
+    path: /home/aglu/.bashrc
+    regexp: '^PS1='
+    line: |-
+      {% raw %}PS1='\n\[\e[36m\][\D{%Y-%m-%d %H:%M:%S}]\[\e[0m\] - \[\e[91m\]\u\[\e[0m\]@\[\e[33m\]\h\[\e[0m\] \[\e[38;5;208m\]>>\[\e[0m\] '{% endraw %}
+    create: true
+    owner: aglu
+    group: aglu
+    mode: '0644'
+    state: present
+  become: true
