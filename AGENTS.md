@@ -28,6 +28,8 @@ This project configures defined in inventory file linux machines to be used as p
 - Use the lowest privileges necessary to perform a task
   - Only set `become: true` at the play level or on an `include:` statement, if all included tasks require super user privileges; otherwise, specify `become: true` at the task level
   - Only set `become: true` on a task if it requires super user privileges
+- use `uv` to manage python virtual environment
+- use `uv run` to execute commands inside of environment
 
 ## Secret Management
 
@@ -71,6 +73,7 @@ This project configures defined in inventory file linux machines to be used as p
   - Task options in alphabetical order (e.g. `become`, `ignore_errors`, `register`)
   - `tags`
 - For `include` statements, quote filenames and only use blank lines between `include` statements if they are multi-line (e.g., they have tags)
+- Use `yaml` as an file extension
 
 ## Linting
 
