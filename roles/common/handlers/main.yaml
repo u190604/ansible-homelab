@@ -1,18 +1,19 @@
 ---
 - name: Reload systemd
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
 
 - name: Restart banner service
   ansible.builtin.systemd:
-    name: update-issue.service
+    name: 'update-issue.service'
     state: restarted
 
 - name: Run banner update now
-  ansible.builtin.command: /usr/local/bin/update-issue.sh
+  ansible.builtin.command:
+    cmd: '/usr/local/bin/update-issue.sh'
   changed_when: true
 
 - name: Restart sshd
   ansible.builtin.service:
-    name: sshd
+    name: 'sshd'
     state: restarted

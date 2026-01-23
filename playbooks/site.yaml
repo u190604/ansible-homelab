@@ -1,5 +1,5 @@
 ---
-- name: START INVENTORY CONFIGURATION
+- name: 'Configure inventory'
   hosts: all
   gather_facts: true
 

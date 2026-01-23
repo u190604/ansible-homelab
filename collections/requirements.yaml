@@ -1,0 +1,6 @@
+---
+# To install additional collections, add them below and run:
+# uv run ansible-galaxy collection install -r collections/requirements.yaml -p collections/
+collections:
+  # - name: ansible.windows
+  # - name: community.windows

@@ -20,13 +20,13 @@ ssh-keygen -t ed25519 -C "alex.gluhov@outlook.com"
 `
 
 # wsl
-below is for Almalinux-10, but you can install other wsl distribution
+below is for Almalinux-9, but you can install other wsl distribution
 * list all available wsl distributions. pick any for installation
   `wsl --list --online`
 * install wsl distribution
-  `wsl --install Almalinux-10`
+  `wsl --install Almalinux-9`
 * backup
-  `wsl --export AlmaLinux-10 E:\backup\vm_backups\wsl\AlmaLinux10.tar`
+  `wsl --export AlmaLinux-9 E:\backup\vm_backups\wsl\AlmaLinux9.tar`
 
 # wsl initial config
 install python 3.12
@@ -41,9 +41,9 @@ python3.12 -m pip install --user uv
 # ansible
 run playbook in dev only
 ```
-uv run ansible-playbook -i inventory/hosts.yml playbooks/site.yml -vv -K --limit dev
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/site.yaml -vv -K --limit dev
 ```
 dry run playbook in dev (no changes applied)
 ```
-uv run ansible-playbook -i inventory/hosts.yml playbooks/site.yml -vv -K --limit dev --check --diff
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/site.yaml -vv -K --limit dev --check --diff
 ```

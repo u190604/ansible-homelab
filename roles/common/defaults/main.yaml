@@ -1,0 +1,13 @@
+---
+apt_common_packages: []
+
+dnf_common_packages:
+  - 'yum-utils'
+  - 'ca-certificates'
+  - 'dnf-plugins-core'
+  - 'mc'
+
+dnf_repo_list:
+  - 'appstream'
+  - 'baseos'
+  - 'crb'

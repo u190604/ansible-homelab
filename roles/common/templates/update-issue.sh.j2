@@ -17,6 +17,13 @@ fi
 
 DISK_LINE="$(df -hP / 2>/dev/null | awk 'NR==2 {print $2 " total, " $4 " free"}')"
 OS_NAME="$(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-Linux}")"
+if command -v rpm >/dev/null 2>&1; then
+  PKG_COUNT="$(rpm -qa 2>/dev/null | wc -l | awk '{print $1}')"
+elif command -v dpkg-query >/dev/null 2>&1; then
+  PKG_COUNT="$(dpkg-query -f '${binary:Package}\n' -W 2>/dev/null | wc -l | awk '{print $1}')"
+else
+  PKG_COUNT="N/A"
+fi
 
 cat > /etc/issue <<EOF
 ========================================
@@ -27,6 +34,7 @@ cat > /etc/issue <<EOF
  CPU      : ${CPU} vCPU
  RAM      : ${RAM_GB} GB
  Disk /   : ${DISK_LINE:-N/A}
+ Packages : ${PKG_COUNT}
 ========================================
 EOF
 
