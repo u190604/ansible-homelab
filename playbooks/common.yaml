@@ -1,0 +1,7 @@
+---
+- name: 'Configure common role'
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - common
