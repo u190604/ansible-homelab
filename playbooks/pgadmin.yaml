@@ -1,0 +1,8 @@
+---
+- name: 'Configure pgadmin role'
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - common
+    - pgadmin
