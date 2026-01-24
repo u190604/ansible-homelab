@@ -1,6 +1,12 @@
 ---
 apt_common_packages: []
 
+common_python_packages:
+  - 'python{{ common_python_version }}'
+  - 'python{{ common_python_version }}-pip'
+common_python_version: '3.12'
+common_uv_bin: /usr/local/bin/uv
+
 dnf_common_packages:
   - 'yum-utils'
   - 'ca-certificates'
