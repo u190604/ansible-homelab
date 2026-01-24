@@ -15,7 +15,9 @@ else
   RAM_GB="N/A"
 fi
 
-DISK_LINE="$(df -hP / 2>/dev/null | awk 'NR==2 {print $2 " total, " $4 " free"}')"
+DISK_TOTAL="$(df -hP -x tmpfs -x devtmpfs --total 2>/dev/null | awk 'END {print $2}')"
+DISK_FREE="$(df -hP -x tmpfs -x devtmpfs --total 2>/dev/null | awk 'END {print $4}')"
+MOUNT_LINES="$(df -hP -x tmpfs -x devtmpfs 2>/dev/null | awk 'NR>1 {printf "  %-12s %6s total, %6s free (%s used)\n", $6, $2, $4, $5}')"
 OS_NAME="$(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-Linux}")"
 if command -v rpm >/dev/null 2>&1; then
   PKG_COUNT="$(rpm -qa 2>/dev/null | wc -l | awk '{print $1}')"
@@ -29,16 +31,18 @@ cat > /etc/issue <<EOF
 ┌────────────────────────────────────────────────────┐
 │     UNAUTHORIZED ACCESS IS STRICTLY PROHIBITED     │
 └────────────────────────────────────────────────────┘
-========================================
+======================================================
  ENV      : ${ENV_NAME}
  Hostname : ${HOST}
  IP       : ${IP:-N/A}
  OS       : ${OS_NAME}
  CPU      : ${CPU} vCPU
  RAM      : ${RAM_GB} GB
- Disk /   : ${DISK_LINE:-N/A}
+ Disk : total - ${DISK_TOTAL:-N/A}, free - ${DISK_FREE:-N/A}
+ Mounts:
+${MOUNT_LINES:-  N/A}
  Packages : ${PKG_COUNT}
-========================================
+======================================================
 EOF
 
 cp -f /etc/issue /etc/issue.net
