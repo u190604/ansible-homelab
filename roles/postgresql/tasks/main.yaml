@@ -1,0 +1,40 @@
+---
+- name: 'Display role start message'
+  ansible.builtin.debug:
+    msg: 'Starting role on {{ inventory_hostname }} (env={{ env_name | default("N/A") }})'
+
+- name: Ensure play runs on AlmaLinux 9.7
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == 'AlmaLinux'
+      - ansible_facts['distribution_version'] is version('9.7', '>=')
+      - ansible_facts['distribution_major_version'] == '9'
+    fail_msg: 'Role supports AlmaLinux 9.7 only.'
+    success_msg: 'AlmaLinux 9.7 detected.'
+
+- name: Enable PostgreSQL module stream
+  ansible.builtin.dnf:
+    name: '@postgresql:{{ postgresql_module_stream }}'
+    state: present
+    update_cache: true
+  become: true
+
+- name: Install PostgreSQL packages
+  ansible.builtin.dnf:
+    name: '{{ postgresql_packages }}'
+    state: present
+    update_cache: true
+  become: true
+
+- name: Initialize PostgreSQL data directory
+  ansible.builtin.command:
+    cmd: 'postgresql-setup --initdb'
+    creates: '{{ postgresql_data_dir }}/PG_VERSION'
+  become: true
+
+- name: Enable and start PostgreSQL service
+  ansible.builtin.systemd:
+    name: '{{ postgresql_service_name }}'
+    enabled: true
+    state: started
+  become: true
