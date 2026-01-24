@@ -4,3 +4,4 @@
 collections:
   # - name: ansible.windows
   # - name: community.windows
+  - name: ansible.posix
