@@ -12,9 +12,9 @@
     fail_msg: 'Role supports AlmaLinux 9.7 only.'
     success_msg: 'AlmaLinux 9.7 detected.'
 
-- name: Enable PostgreSQL module stream
+- name: Install PostgreSQL module profile
   ansible.builtin.dnf:
-    name: '@postgresql:{{ postgresql_module_stream }}'
+    name: '@postgresql:{{ postgresql_module_stream }}/{{ postgresql_module_profile }}'
     state: present
     update_cache: true
   become: true
@@ -32,9 +32,28 @@
     creates: '{{ postgresql_data_dir }}/PG_VERSION'
   become: true
 
-- name: Enable and start PostgreSQL service
+- name: Enable and start PostgreSQL default service
   ansible.builtin.systemd:
-    name: '{{ postgresql_service_name }}'
+    name: 'postgresql'
     enabled: true
     state: started
   become: true
+  failed_when: false
+  register: postgresql_systemd_default
+
+- name: Enable and start PostgreSQL versioned service
+  ansible.builtin.systemd:
+    name: 'postgresql-{{ postgresql_module_stream }}'
+    enabled: true
+    state: started
+  become: true
+  failed_when: false
+  register: postgresql_systemd_versioned
+  when: postgresql_systemd_default.failed | default(true)
+
+- name: Ensure PostgreSQL service started
+  ansible.builtin.assert:
+    that:
+      - not postgresql_systemd_default.failed | default(false) or not postgresql_systemd_versioned.failed | default(false)
+    fail_msg: 'PostgreSQL systemd unit not found or failed to start.'
+    success_msg: 'PostgreSQL systemd unit started.'

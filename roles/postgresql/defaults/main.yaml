@@ -1,6 +1,6 @@
 ---
 postgresql_data_dir: /var/lib/pgsql/data
+postgresql_module_profile: 'server'
 postgresql_module_stream: '16'
 postgresql_packages:
   - 'postgresql-server'
-postgresql_service_name: 'postgresql'

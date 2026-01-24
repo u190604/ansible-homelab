@@ -1,0 +1,7 @@
+---
+- name: 'Configure postgresql role'
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - postgresql
