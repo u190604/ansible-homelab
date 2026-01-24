@@ -39,11 +39,17 @@ python3.12 -m pip install --user uv
 ```
 
 # ansible
-run playbook in dev only
+Install required collections
+```
+uv run ansible-galaxy collection install -r collections/requirements.yaml -p collections/
+```
+
+Run playbook in dev only
 ```
 uv run ansible-playbook -i inventory/hosts.yaml playbooks/site.yaml -vv -K --limit dev
 ```
-dry run playbook in dev (no changes applied)
+Dry run playbook in dev (no changes applied)
 ```
 uv run ansible-playbook -i inventory/hosts.yaml playbooks/site.yaml -vv -K --limit dev --check --diff
 ```
+
