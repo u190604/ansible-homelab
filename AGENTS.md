@@ -28,8 +28,10 @@ This project configures defined in inventory file linux machines to be used as p
 - Use the lowest privileges necessary to perform a task
   - Only set `become: true` at the play level or on an `include:` statement, if all included tasks require super user privileges; otherwise, specify `become: true` at the task level
   - Only set `become: true` on a task if it requires super user privileges
+- use `python` version 3.12 or higher and `python3.12 -m pip install` to install uv. Check `pyproject.toml` to ensure python version
 - use `uv` to manage python virtual environment
 - use `uv run` to execute commands inside of environment
+- when creating new playbook for particular role (or roles) include common role always to run first
 
 ## Secret Management
 
