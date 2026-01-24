@@ -1,0 +1,18 @@
+---
+pgadmin_config_dir: '{{ pgadmin_home }}/.pgadmin'
+pgadmin_default_email: 'admin@example.com'
+pgadmin_default_password: 'change_me'
+pgadmin_firewalld_manage: true
+pgadmin_listen_address: '0.0.0.0'
+pgadmin_listen_port: 5050
+pgadmin_package_spec: 'pgadmin4'
+pgadmin_service_name: 'pgadmin4'
+pgadmin_system_packages:
+  - 'firewalld'
+  - 'python3'
+  - 'python3-pip'
+pgadmin_group: '{{ pgadmin_user }}'
+pgadmin_home: /opt/pgadmin
+pgadmin_user: 'pgadmin'
+pgadmin_uv_bin: /usr/local/bin/uv
+pgadmin_virtualenv_path: '{{ pgadmin_home }}/venv'

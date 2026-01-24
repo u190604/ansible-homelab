@@ -1,0 +1,20 @@
+[Unit]
+Description=pgAdmin 4
+After=network.target
+
+[Service]
+Type=simple
+User={{ pgadmin_user }}
+Group={{ pgadmin_group }}
+WorkingDirectory={{ pgadmin_home }}
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=PGADMIN_DEFAULT_EMAIL={{ pgadmin_default_email }}
+Environment=PGADMIN_DEFAULT_PASSWORD={{ pgadmin_default_password }}
+Environment=PGADMIN_LISTEN_ADDRESS={{ pgadmin_listen_address }}
+Environment=PGADMIN_LISTEN_PORT={{ pgadmin_listen_port }}
+ExecStart={{ pgadmin_uv_bin }} run --python {{ pgadmin_virtualenv_path }} -- python -m pgadmin4
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
