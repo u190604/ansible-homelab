@@ -60,18 +60,72 @@
     mode: '0700'
   become: true
 
+- name: Ensure pgadmin data directory exists
+  ansible.builtin.file:
+    path: '{{ pgadmin_data_dir }}'
+    state: directory
+    owner: '{{ pgadmin_user }}'
+    group: '{{ pgadmin_group }}'
+    mode: '0700'
+  become: true
+
+- name: Ensure pgadmin log directory exists
+  ansible.builtin.file:
+    path: '{{ pgadmin_log_dir }}'
+    state: directory
+    owner: '{{ pgadmin_user }}'
+    group: '{{ pgadmin_group }}'
+    mode: '0750'
+  become: true
+
+- name: Ensure pgadmin storage directory exists
+  ansible.builtin.file:
+    path: '{{ pgadmin_storage_dir }}'
+    state: directory
+    owner: '{{ pgadmin_user }}'
+    group: '{{ pgadmin_group }}'
+    mode: '0700'
+  become: true
+
 - name: Verify uv is installed
   ansible.builtin.command:
     cmd: '{{ pgadmin_uv_bin }} --version'
   changed_when: false
   become: true
 
+- name: Check pgadmin virtual environment
+  ansible.builtin.stat:
+    path: '{{ pgadmin_virtualenv_path }}'
+  register: pgadmin_venv_stat
+
+- name: Check pgadmin virtual environment python version
+  ansible.builtin.command:
+    cmd: '{{ pgadmin_virtualenv_path }}/bin/python -c ''import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")'''
+  changed_when: false
+  failed_when: false
+  register: pgadmin_venv_python_version
+  when:
+    - pgadmin_venv_stat.stat.exists
+    - not ansible_check_mode
+
+- name: Remove pgadmin virtual environment
+  ansible.builtin.file:
+    path: '{{ pgadmin_virtualenv_path }}'
+    state: absent
+  become: true
+  when:
+    - pgadmin_venv_stat.stat.exists
+    - not ansible_check_mode
+    - pgadmin_recreate_venv | bool or (pgadmin_venv_python_version.stdout is defined and pgadmin_venv_python_version.stdout != common_python_version)
+
 - name: Create pgadmin virtual environment
   ansible.builtin.command:
-    cmd: '{{ pgadmin_uv_bin }} venv {{ pgadmin_virtualenv_path }}'
+    cmd: '{{ pgadmin_uv_bin }} venv --python {{ pgadmin_python_bin }} {{ pgadmin_virtualenv_path }}'
     creates: '{{ pgadmin_virtualenv_path }}/bin/python'
   become: true
   become_user: '{{ pgadmin_user }}'
+  when:
+    - not ansible_check_mode
 
 - name: Check for pgadmin4 package
   ansible.builtin.command:
@@ -81,21 +135,23 @@
   changed_when: false
   failed_when: false
   register: pgadmin_package_check
+  when:
+    - not ansible_check_mode
 
 - name: Install pgadmin4 package
   ansible.builtin.command:
     cmd: '{{ pgadmin_uv_bin }} pip install --python {{ pgadmin_virtualenv_path }} {{ pgadmin_package_spec }}'
   become: true
   become_user: '{{ pgadmin_user }}'
-  when: pgadmin_package_check.rc != 0
+  when:
+    - not ansible_check_mode
+    - pgadmin_package_check is defined
+    - pgadmin_package_check.rc != 0
 
 - name: Configure pgadmin runtime settings
-  ansible.builtin.copy:
+  ansible.builtin.template:
+    src: config_local.py.j2
     dest: '{{ pgadmin_config_dir }}/config_local.py'
-    content: |
-      SERVER_MODE = True
-      DEFAULT_SERVER = '{{ pgadmin_listen_address }}'
-      DEFAULT_SERVER_PORT = {{ pgadmin_listen_port }}
     owner: '{{ pgadmin_user }}'
     group: '{{ pgadmin_group }}'
     mode: '0600'
@@ -114,8 +170,16 @@
     - Reload systemd
     - Restart pgadmin
 
+- name: Remove legacy pgadmin4 systemd unit
+  ansible.builtin.file:
+    path: /etc/systemd/system/pgadmin4.service
+    state: absent
+  become: true
+  notify: Reload systemd
+
 - name: Flush handlers so systemd sees new unit
   ansible.builtin.meta: flush_handlers
+  when: not ansible_check_mode
 
 - name: Enable and start pgadmin service
   ansible.builtin.systemd:
@@ -123,6 +187,7 @@
     enabled: true
     state: started
   become: true
+  when: not ansible_check_mode
 
 - name: Open pgadmin firewall port
   ansible.posix.firewalld:

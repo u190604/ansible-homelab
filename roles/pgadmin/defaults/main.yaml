@@ -2,11 +2,18 @@
 pgadmin_config_dir: '{{ pgadmin_home }}/.pgadmin'
 pgadmin_default_email: 'admin@example.com'
 pgadmin_default_password: 'change_me'
+pgadmin_data_dir: /var/lib/pgadmin
 pgadmin_firewalld_manage: true
 pgadmin_listen_address: '0.0.0.0'
 pgadmin_listen_port: 5050
+pgadmin_log_file: '{{ pgadmin_config_dir }}/pgadmin.log'
+pgadmin_log_dir: /var/log/pgadmin
 pgadmin_package_spec: 'pgadmin4'
-pgadmin_service_name: 'pgadmin4'
+pgadmin_python_bin: '/usr/bin/python{{ common_python_version }}'
+pgadmin_recreate_venv: false
+pgadmin_service_name: 'pgadmin'
+pgadmin_sqlite_path: '{{ pgadmin_config_dir }}/pgadmin4.db'
+pgadmin_storage_dir: '{{ pgadmin_config_dir }}/storage'
 pgadmin_system_packages:
   - 'firewalld'
   - 'python3'

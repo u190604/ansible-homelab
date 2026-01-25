@@ -3,9 +3,11 @@
   ansible.builtin.systemd:
     daemon_reload: true
   become: true
+  when: not ansible_check_mode
 
 - name: Restart pgadmin
   ansible.builtin.systemd:
     name: '{{ pgadmin_service_name }}'
     state: restarted
   become: true
+  when: not ansible_check_mode
