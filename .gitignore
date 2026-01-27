@@ -4,3 +4,4 @@ ansible-example.cfg
 .venv/
 collections/ansible_collections
 *.iso
+vault.yaml

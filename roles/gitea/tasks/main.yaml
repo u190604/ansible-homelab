@@ -1,0 +1,74 @@
+---
+- name: Configure Gitea deployment
+  block:
+    - name: 'Display role start message'
+      ansible.builtin.debug:
+        msg: 'Starting role on {{ inventory_hostname }} (env={{ env_name | default("N/A") }})'
+
+    - name: Get podman user entry
+      ansible.builtin.getent:
+        database: passwd
+        key: '{{ podman_user }}'
+
+    - name: Display podman user entry
+      ansible.builtin.debug:
+        var: ansible_facts.getent_passwd
+
+    - name: Define podman user runtime env
+      ansible.builtin.set_fact:
+        podman_user_uid: '{{ ansible_facts.getent_passwd[podman_user][1] }}'
+        podman_user_env:
+          XDG_RUNTIME_DIR: '/run/user/{{ ansible_facts.getent_passwd[podman_user][1] }}'
+          DBUS_SESSION_BUS_ADDRESS: 'unix:path=/run/user/{{ ansible_facts.getent_passwd[podman_user][1] }}/bus'
+
+    - name: Enable systemd lingering for podman user
+      ansible.builtin.command:
+        cmd: 'loginctl enable-linger {{ podman_user }}'
+      changed_when: false
+
+    - name: Ensure Quadlet directory exists (user)
+      ansible.builtin.file:
+        path: '{{ podman_home }}/.config/containers/systemd'
+        state: directory
+        owner: '{{ podman_user }}'
+        group: '{{ podman_group }}'
+        mode: '0755'
+
+    - name: Deploy Gitea volume Quadlet
+      ansible.builtin.template:
+        src: gitea-data.volume.j2
+        dest: '{{ podman_home }}/.config/containers/systemd/{{ gitea_volume_name }}.volume'
+        owner: '{{ podman_user }}'
+        group: '{{ podman_group }}'
+        mode: '0644'
+      notify:
+        - Reexec user systemd (quadlet generators)
+        - Reload user systemd
+
+    - name: Deploy Gitea container Quadlet
+      ansible.builtin.template:
+        src: gitea.container.j2
+        dest: '{{ podman_home }}/.config/containers/systemd/gitea.container'
+        owner: '{{ podman_user }}'
+        group: '{{ podman_group }}'
+        mode: '0644'
+      notify:
+        - Reexec user systemd (quadlet generators)
+        - Reload user systemd
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start Gitea container
+      ansible.builtin.systemd:
+        name: 'gitea.service'
+        enabled: true
+        state: started
+        scope: user
+      become: true
+      become_user: '{{ podman_user }}'
+      environment: '{{ podman_user_env }}'
+      vars:
+        ansible_remote_tmp: '{{ podman_remote_tmp }}'
+  when:
+    - gitea_enable_podman | bool

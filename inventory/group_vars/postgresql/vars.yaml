@@ -1,0 +1,2 @@
+---
+postgres_admin_password: '{{ vault_postgres_admin_password }}'

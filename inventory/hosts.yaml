@@ -22,3 +22,13 @@ all:
       vars:
         env_name: 'PROD'
       hosts: {}
+
+    postgresql:
+      hosts:
+        lnx02:
+          ansible_host: 192.168.1.202
+
+    gitea:
+      hosts:
+        lnx02:
+          ansible_host: 192.168.1.202

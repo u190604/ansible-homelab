@@ -1,10 +1,4 @@
 ---
-gitea_enable_podman: true
-gitea_http_port: 3000
-gitea_image: 'docker.gitea.com/gitea:1.25.3'
-gitea_ssh_port: 2222
-gitea_volume_name: 'gitea-data'
-
 # Quadlet
 podman_enable_linger: true
 podman_group: '{{ podman_user }}'

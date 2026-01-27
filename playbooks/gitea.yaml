@@ -1,0 +1,9 @@
+---
+- name: 'Configure gitea role'
+  hosts: gitea
+  gather_facts: true
+
+  roles:
+    - common
+    - podman
+    - gitea

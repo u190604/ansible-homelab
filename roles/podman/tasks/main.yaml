@@ -92,9 +92,3 @@
   vars:
     ansible_remote_tmp: '{{ podman_remote_tmp }}'
   when: not ansible_check_mode
-
-- name: Deploy Gitea container
-  ansible.builtin.import_tasks: 'gitea.yaml'
-  when:
-    - gitea_enable_podman | bool
-    - not ansible_check_mode
