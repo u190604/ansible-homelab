@@ -53,3 +53,24 @@ Dry run playbook in dev (no changes applied)
 uv run ansible-playbook -i inventory/hosts.yaml playbooks/site.yaml -vv -K --limit dev --check --diff
 ```
 
+# playbook examples
+Common
+```
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/common.yaml -vv -K
+```
+PostgreSQL
+```
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/postgresql.yaml -vv -K
+```
+PgAdmin
+```
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/pgadmin.yaml -vv -K
+```
+Gitea
+```
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/gitea.yaml -vv -K
+```
+Site (all roles)
+```
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/site.yaml -vv -K
+```

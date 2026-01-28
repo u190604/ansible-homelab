@@ -38,22 +38,148 @@
     enabled: true
     state: started
   become: true
-  failed_when: false
   register: postgresql_systemd_default
-
-- name: Enable and start PostgreSQL versioned service
-  ansible.builtin.systemd:
-    name: 'postgresql-{{ postgresql_module_stream }}'
-    enabled: true
-    state: started
-  become: true
-  failed_when: false
-  register: postgresql_systemd_versioned
-  when: postgresql_systemd_default.failed | default(true)
 
 - name: Ensure PostgreSQL service started
   ansible.builtin.assert:
     that:
-      - not postgresql_systemd_default.failed | default(false) or not postgresql_systemd_versioned.failed | default(false)
-    fail_msg: 'PostgreSQL systemd unit not found or failed to start.'
-    success_msg: 'PostgreSQL systemd unit started.'
+      - postgresql_systemd_default.status.ActiveState | default('') == 'active'
+    fail_msg: 'PostgreSQL default systemd unit not active.'
+    success_msg: 'PostgreSQL default systemd unit started.'
+
+- name: Validate PostgreSQL listen address
+  ansible.builtin.assert:
+    that:
+      - postgresql_listen_address is match('^192\\.168\\.1\\.')
+    fail_msg: >-
+      postgresql_listen_address must be in the 192.168.1.0/24 subnet
+      (got {{ postgresql_listen_address }}).
+    success_msg: 'PostgreSQL listen address validated.'
+
+- name: Configure PostgreSQL listen address
+  ansible.builtin.lineinfile:
+    path: '{{ postgresql_data_dir }}/postgresql.conf'
+    regexp: '^#?\\s*listen_addresses\\s*='
+    line: "listen_addresses = '{{ postgresql_listen_address }}'"
+    state: present
+  become: true
+  notify: Restart PostgreSQL default service
+
+- name: Allow local postgres peer authentication
+  ansible.builtin.lineinfile:
+    path: '{{ postgresql_data_dir }}/pg_hba.conf'
+    regexp: '^local\\s+all\\s+postgres\\s+'
+    line: 'local all postgres peer'
+    state: present
+    insertbefore: '^local\\s+all\\s+all\\s+'
+  become: true
+  notify: Restart PostgreSQL default service
+
+- name: Require passwords for other local connections
+  ansible.builtin.lineinfile:
+    path: '{{ postgresql_data_dir }}/pg_hba.conf'
+    regexp: '^local\\s+all\\s+all\\s+'
+    line: 'local all all scram-sha-256'
+    state: present
+  become: true
+  notify: Restart PostgreSQL default service
+
+- name: Allow subnet access from 192.168.1.0/24
+  ansible.builtin.lineinfile:
+    path: '{{ postgresql_data_dir }}/pg_hba.conf'
+    regexp: '^host\\s+all\\s+all\\s+192\\.168\\.1\\.0/24\\s+'
+    line: 'host all all 192.168.1.0/24 scram-sha-256'
+    state: present
+  become: true
+  notify: Restart PostgreSQL default service
+
+- name: Check PostgreSQL firewall port
+  ansible.builtin.command:
+    cmd: 'firewall-cmd --permanent --query-port={{ postgresql_listen_port }}/tcp'
+  become: true
+  changed_when: false
+  failed_when: false
+  register: postgresql_firewalld_port
+  when: postgresql_firewalld_manage | bool
+
+- name: Open PostgreSQL firewall port
+  ansible.builtin.command:
+    cmd: 'firewall-cmd --permanent --add-port={{ postgresql_listen_port }}/tcp'
+  become: true
+  notify: Restart firewalld
+  when:
+    - postgresql_firewalld_manage | bool
+    - postgresql_firewalld_port.rc != 0
+
+- name: Flush handlers so service changes apply
+  ansible.builtin.meta: flush_handlers
+  when: not ansible_check_mode
+
+- name: Check PostgreSQL local connection
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -X
+      - -tA
+      - -c
+      - 'SELECT 1;'
+  become: true
+  become_user: postgres
+  changed_when: false
+  failed_when: false
+  register: postgres_psql_check
+
+- name: Define escaped postgres password
+  ansible.builtin.set_fact:
+    postgres_admin_password_sql: >-
+      {{ postgres_admin_password | replace("'", "''") }}
+  no_log: false
+
+- name: Verify PostgreSQL local connection response
+  ansible.builtin.assert:
+    that:
+      - postgres_psql_check.rc == 0
+      - postgres_psql_check.stdout == '1'
+    fail_msg: >-
+      PostgreSQL local connection failed (rc={{ postgres_psql_check.rc }}):
+      {{ postgres_psql_check.stderr | default('no stderr') }}
+    success_msg: 'PostgreSQL local connection verified.'
+
+- name: Check postgres user password
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -X
+      - -tA
+      - -c
+      - "SELECT 1 FROM pg_authid WHERE rolname='postgres' AND rolpassword = crypt('{{ postgres_admin_password_sql }}', rolpassword);"
+  become: true
+  become_user: postgres
+  changed_when: false
+  failed_when: false
+  no_log: false
+  register: postgres_password_check
+
+- name: Set postgres user password
+  ansible.builtin.command:
+    argv:
+      - psql
+      - -X
+      - -c
+      - "ALTER USER postgres WITH PASSWORD '{{ postgres_admin_password_sql }}';"
+  become: true
+  become_user: postgres
+  failed_when: false
+  no_log: false
+  register: postgres_password_set
+  when:
+    - postgres_password_check.rc != 0 or postgres_password_check.stdout != '1'
+
+- name: Fail when postgres password update fails
+  ansible.builtin.fail:
+    msg: >-
+      Failed to set postgres password (rc={{ postgres_password_set.rc }}):
+      {{ postgres_password_set.stderr | default('no stderr') }}
+  when:
+    - postgres_password_check.rc != 0 or postgres_password_check.stdout != '1'
+    - postgres_password_set.rc != 0

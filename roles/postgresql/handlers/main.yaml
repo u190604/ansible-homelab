@@ -1,0 +1,12 @@
+---
+- name: Restart PostgreSQL default service
+  ansible.builtin.systemd:
+    name: 'postgresql'
+    state: restarted
+  become: true
+
+- name: Restart firewalld
+  ansible.builtin.systemd:
+    name: 'firewalld'
+    state: restarted
+  become: true
