@@ -5,4 +5,21 @@
 
   roles:
     - common
+
+- name: 'Configure postgresql hosts'
+  hosts: postgresql
+  gather_facts: true
+
+  roles:
+    - common
+    - postgresql
+
+- name: 'Configure podman container hosts'
+  hosts: podman
+  gather_facts: true
+
+  roles:
+    - common
     - podman
+    - gitea
+    - pgadmin

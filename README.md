@@ -70,7 +70,19 @@ Gitea
 ```
 uv run ansible-playbook -i inventory/hosts.yaml playbooks/gitea.yaml -vv -K
 ```
-Site (all roles)
+
+Site (all roles, dev only)
 ```
-uv run ansible-playbook -i inventory/hosts.yaml playbooks/site.yaml -vv -K
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/site.yaml -vv -K --limit dev
+```
+
+# podman
+list all containers
+```
+cd /tmp && sudo -u podman -H bash -lc 'uid=$(id -u); XDG_RUNTIME_DIR=/run/user/$uid DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$uid/bus podman ps -a'
+```
+
+filter to pgadmin container
+```
+cd /tmp && sudo -u podman -H bash -lc 'uid=$(id -u); XDG_RUNTIME_DIR=/run/user/$uid DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$uid/bus podman ps -a --filter name=pgadmin'
 ```

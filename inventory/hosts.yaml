@@ -28,7 +28,17 @@ all:
         lnx02:
           ansible_host: 192.168.1.202
 
+    podman:
+      hosts:
+        lnx01:
+          ansible_host: 192.168.1.201
+
     gitea:
       hosts:
-        lnx02:
-          ansible_host: 192.168.1.202
+        lnx01:
+          ansible_host: 192.168.1.201
+
+    pgadmin:
+      hosts:
+        lnx01:
+          ansible_host: 192.168.1.201

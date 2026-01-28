@@ -1,0 +1,2 @@
+---
+pgadmin_default_password: '{{ vault_pgadmin_default_password }}'

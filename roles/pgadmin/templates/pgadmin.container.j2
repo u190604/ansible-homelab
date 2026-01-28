@@ -1,0 +1,23 @@
+[Unit]
+Description=pgAdmin 4
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image={{ pgadmin_image }}
+ContainerName={{ pgadmin_container_name }}
+
+PublishPort={{ pgadmin_listen_port }}:{{ pgadmin_container_port }}
+
+Volume={{ pgadmin_volume_name }}:/var/lib/pgadmin:Z
+
+Environment=PGADMIN_DEFAULT_EMAIL={{ pgadmin_default_email }}
+Environment=PGADMIN_DEFAULT_PASSWORD={{ pgadmin_default_password }}
+Environment=PGADMIN_CONFIG_SERVER_MODE=True
+
+[Service]
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

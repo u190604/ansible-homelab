@@ -15,9 +15,9 @@ else
   RAM_GB="N/A"
 fi
 
-DISK_TOTAL="$(df -hP -x tmpfs -x devtmpfs --total 2>/dev/null | awk 'END {print $2}')"
-DISK_FREE="$(df -hP -x tmpfs -x devtmpfs --total 2>/dev/null | awk 'END {print $4}')"
-MOUNT_LINES="$(df -hP -x tmpfs -x devtmpfs 2>/dev/null | awk 'NR>1 {printf "  %-12s %6s total, %6s free (%s used)\n", $6, $2, $4, $5}')"
+DISK_TOTAL="$(df -hP -x tmpfs -x devtmpfs -x sysfs -x efivarfs --total 2>/dev/null | awk 'END {print $2}')"
+DISK_FREE="$(df -hP -x tmpfs -x devtmpfs -x sysfs -x efivarfs --total 2>/dev/null | awk 'END {print $4}')"
+MOUNT_LINES="$(df -hP -x tmpfs -x devtmpfs -x sysfs -x efivarfs 2>/dev/null | awk 'NR>1 {printf "  %-12s %6s total, %6s free (%s used)\n", $6, $2, $4, $5}')"
 OS_NAME="$(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-Linux}")"
 if command -v rpm >/dev/null 2>&1; then
   PKG_COUNT="$(rpm -qa 2>/dev/null | wc -l | awk '{print $1}')"

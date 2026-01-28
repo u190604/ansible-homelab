@@ -32,20 +32,43 @@
     creates: '{{ postgresql_data_dir }}/PG_VERSION'
   become: true
 
-- name: Enable and start PostgreSQL default service
+- name: Collect systemd service facts
+  ansible.builtin.service_facts:
+
+- name: Select PostgreSQL systemd service name
+  ansible.builtin.set_fact:
+    postgresql_service_name: >-
+      {{ 'postgresql'
+        if 'postgresql.service' in ansible_facts.services
+        else 'postgresql-' ~ postgresql_module_stream
+        if ('postgresql-' ~ postgresql_module_stream ~ '.service') in ansible_facts.services
+        else '' }}
+
+- name: Validate PostgreSQL systemd service detected
+  ansible.builtin.assert:
+    that:
+      - postgresql_service_name | length > 0
+    fail_msg: >-
+      PostgreSQL systemd unit not found (checked postgresql.service and
+      postgresql-{{ postgresql_module_stream }}.service).
+    success_msg: 'PostgreSQL systemd unit detected.'
+
+- name: Enable and start PostgreSQL service
   ansible.builtin.systemd:
-    name: 'postgresql'
+    name: '{{ postgresql_service_name }}'
     enabled: true
     state: started
   become: true
-  register: postgresql_systemd_default
+  failed_when: false
+  register: postgresql_systemd_service
 
-- name: Ensure PostgreSQL service started
+- name: Verify PostgreSQL service started
   ansible.builtin.assert:
     that:
-      - postgresql_systemd_default.status.ActiveState | default('') == 'active'
-    fail_msg: 'PostgreSQL default systemd unit not active.'
-    success_msg: 'PostgreSQL default systemd unit started.'
+      - not postgresql_systemd_service.failed | default(false)
+      - postgresql_systemd_service.status.ActiveState | default('') == 'active'
+    fail_msg: 'PostgreSQL systemd unit not active.'
+    success_msg: 'PostgreSQL systemd unit started.'
 
 - name: Validate PostgreSQL listen address
   ansible.builtin.assert:
@@ -63,7 +86,7 @@
     line: "listen_addresses = '{{ postgresql_listen_address }}'"
     state: present
   become: true
-  notify: Restart PostgreSQL default service
+  notify: Restart PostgreSQL service
 
 - name: Allow local postgres peer authentication
   ansible.builtin.lineinfile:
@@ -73,7 +96,7 @@
     state: present
     insertbefore: '^local\\s+all\\s+all\\s+'
   become: true
-  notify: Restart PostgreSQL default service
+  notify: Restart PostgreSQL service
 
 - name: Require passwords for other local connections
   ansible.builtin.lineinfile:
@@ -82,7 +105,7 @@
     line: 'local all all scram-sha-256'
     state: present
   become: true
-  notify: Restart PostgreSQL default service
+  notify: Restart PostgreSQL service
 
 - name: Allow subnet access from 192.168.1.0/24
   ansible.builtin.lineinfile:
@@ -91,7 +114,7 @@
     line: 'host all all 192.168.1.0/24 scram-sha-256'
     state: present
   become: true
-  notify: Restart PostgreSQL default service
+  notify: Restart PostgreSQL service
 
 - name: Check PostgreSQL firewall port
   ansible.builtin.command:

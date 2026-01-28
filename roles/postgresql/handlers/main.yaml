@@ -1,7 +1,7 @@
 ---
-- name: Restart PostgreSQL default service
+- name: Restart PostgreSQL service
   ansible.builtin.systemd:
-    name: 'postgresql'
+    name: '{{ postgresql_service_name }}'
     state: restarted
   become: true
 

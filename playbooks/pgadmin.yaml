@@ -1,8 +1,9 @@
 ---
 - name: 'Configure pgadmin role'
-  hosts: all
+  hosts: pgadmin
   gather_facts: true
 
   roles:
     - common
+    - podman
     - pgadmin
