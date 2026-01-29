@@ -1,0 +1,10 @@
+---
+local_packages:
+  - 'createrepo_c'
+  - 'epel-release'
+  - 'git'
+  - 'keepassxc'
+  - 'pykickstart'
+  - 'python3.12'
+  - 'python3.12-pip'
+  - 'xorriso'

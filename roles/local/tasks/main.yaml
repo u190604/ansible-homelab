@@ -1,0 +1,7 @@
+---
+- name: Install local packages
+  ansible.builtin.dnf:
+    name: '{{ local_packages }}'
+    state: present
+    update_cache: true
+  become: true

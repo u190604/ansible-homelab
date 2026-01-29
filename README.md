@@ -56,19 +56,23 @@ uv run ansible-playbook -i inventory/hosts.yaml playbooks/site.yaml -vv -K --lim
 # playbook examples
 Common
 ```
-uv run ansible-playbook -i inventory/hosts.yaml playbooks/common.yaml -vv -K
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/common.yaml -vv -K --limit dev
 ```
 PostgreSQL
 ```
-uv run ansible-playbook -i inventory/hosts.yaml playbooks/postgresql.yaml -vv -K
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/postgresql.yaml -vv -K --limit dev
 ```
 PgAdmin
 ```
-uv run ansible-playbook -i inventory/hosts.yaml playbooks/pgadmin.yaml -vv -K
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/pgadmin.yaml -vv -K --limit dev
 ```
 Gitea
 ```
-uv run ansible-playbook -i inventory/hosts.yaml playbooks/gitea.yaml -vv -K
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/gitea.yaml -vv -K --limit dev
+```
+Local
+```
+uv run ansible-playbook -i inventory/hosts.yaml playbooks/local.yaml -vv
 ```
 
 Site (all roles, dev only)

@@ -3,6 +3,17 @@
   ansible.builtin.debug:
     msg: 'Starting role on {{ inventory_hostname }} (env={{ env_name | default("N/A") }})'
 
+# WSL hosts do not run sshd; skip SSH tasks on local WSL.
+- name: Determine local WSL status
+  ansible.builtin.set_fact:
+    common_is_local: "{{ 'local' in group_names }}"
+    common_is_wsl: >-
+      {{
+        (ansible_facts['virtualization_type'] | default('')) == 'wsl'
+        or 'microsoft' in (ansible_facts['kernel_release'] | default('') | lower)
+        or 'wsl' in (ansible_facts['kernel_release'] | default('') | lower)
+      }}
+
 # - name: Display the entire ansible_facts dictionary
 #   ansible.builtin.debug:
 #     var: ansible_facts
@@ -161,6 +172,11 @@
   when:
     - not ansible_check_mode or update_issue_unit.stat.exists
 
+- name: Check sshd configuration file
+  ansible.builtin.stat:
+    path: /etc/ssh/sshd_config
+  register: common_sshd_config
+
 - name: Ensure SSH uses banner file
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
@@ -168,6 +184,9 @@
     line: 'Banner /etc/issue.net'
     state: present
   notify: Restart sshd
+  when:
+    - common_sshd_config.stat.exists
+    - not (common_is_local and common_is_wsl)
 
 - name: Configure bash prompt for aglu user
   ansible.builtin.lineinfile:

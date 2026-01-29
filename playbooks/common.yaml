@@ -1,6 +1,6 @@
 ---
 - name: 'Configure common role'
-  hosts: all
+  hosts: all:!local
   gather_facts: true
 
   roles:

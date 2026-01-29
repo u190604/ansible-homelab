@@ -1,0 +1,8 @@
+---
+- name: 'Configure local role'
+  hosts: local
+  gather_facts: true
+
+  roles:
+    - common
+    - local

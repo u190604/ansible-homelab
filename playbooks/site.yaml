@@ -1,6 +1,6 @@
 ---
 - name: 'Configure inventory'
-  hosts: all
+  hosts: all:!local
   gather_facts: true
 
   roles:
