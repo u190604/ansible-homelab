@@ -1,4 +1,32 @@
 ---
+- name: Install firewalld package
+  ansible.builtin.dnf:
+    name:
+      - 'firewalld'
+    state: present
+    update_cache: true
+  become: true
+
+- name: Ensure firewalld service enabled
+  ansible.builtin.systemd:
+    name: 'firewalld'
+    enabled: true
+    state: started
+  become: true
+
+- name: Open Gitea firewall ports
+  ansible.posix.firewalld:
+    port: '{{ item }}/tcp'
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - '{{ gitea_http_port }}'
+    - '{{ gitea_ssh_port }}'
+  become: true
+  notify:
+    - Reload firewalld
+
 - name: Configure Gitea deployment
   block:
     - name: 'Display role start message'

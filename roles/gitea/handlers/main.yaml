@@ -18,3 +18,9 @@
   environment: '{{ podman_user_env }}'
   vars:
     ansible_remote_tmp: '{{ podman_remote_tmp }}'
+
+- name: Reload firewalld
+  ansible.builtin.systemd:
+    name: 'firewalld'
+    state: reloaded
+  become: true
