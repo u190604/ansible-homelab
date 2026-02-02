@@ -8,3 +8,4 @@ local_packages:
   - 'python3.12'
   - 'python3.12-pip'
   - 'xorriso'
+  - 'mkpasswd'
