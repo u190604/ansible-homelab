@@ -1,14 +1,14 @@
 ---
 all:
   hosts:
-    lnx01:
-      ansible_host: 192.168.1.201
+    lnx101:
+      ansible_host: 192.168.50.101
 
-    lnx02:
-      ansible_host: 192.168.1.202
+    lnx102:
+      ansible_host: 192.168.50.102
 
     lnx150:
-      ansible_host: 192.168.1.150
+      ansible_host: 192.168.50.150
 
   children:
     # Environments
@@ -16,14 +16,14 @@ all:
       vars:
         env_name: 'DEV'
       hosts:
-        lnx01:
-          ansible_host: 192.168.1.201
+        lnx101:
+          ansible_host: 192.168.50.101
 
-        lnx02:
-          ansible_host: 192.168.1.202
+        lnx102:
+          ansible_host: 192.168.50.102
 
         lnx150:
-          ansible_host: 192.168.1.150  
+          ansible_host: 192.168.50.150  
 
     prod:
       vars:
@@ -32,23 +32,23 @@ all:
 
     postgresql:
       hosts:
-        lnx02:
-          ansible_host: 192.168.1.202
+        lnx102:
+          ansible_host: 192.168.50.102
 
     podman:
       hosts:
-        lnx01:
-          ansible_host: 192.168.1.201
+        lnx101:
+          ansible_host: 192.168.50.101
 
     gitea:
       hosts:
-        lnx01:
-          ansible_host: 192.168.1.201
+        lnx101:
+          ansible_host: 192.168.50.101
 
     pgadmin:
       hosts:
-        lnx01:
-          ansible_host: 192.168.1.201
+        lnx101:
+          ansible_host: 192.168.50.101
 
     local:
       hosts:
@@ -58,4 +58,4 @@ all:
     pihole:
       hosts:
         lnx150:
-          ansible_host: 192.168.1.150  
+          ansible_host: 192.168.50.150  

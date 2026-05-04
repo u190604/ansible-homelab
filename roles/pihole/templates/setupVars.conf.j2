@@ -1,0 +1,9 @@
+PIHOLE_INTERFACE={{ pihole_setup_vars_interface }}
+IPV4_ADDRESS={{ pihole_setup_vars_ipv4_address }}
+IPV6_ADDRESS=
+PIHOLE_DNS_1={{ pihole_setup_vars_dns_1 }}
+PIHOLE_DNS_2={{ pihole_setup_vars_dns_2 }}
+QUERY_LOGGING={{ pihole_setup_vars_query_logging | ternary('true', 'false') }}
+INSTALL_WEB_SERVER={{ pihole_setup_vars_install_web_server | ternary('true', 'false') }}
+INSTALL_WEB_INTERFACE={{ pihole_setup_vars_install_web_interface | ternary('true', 'false') }}
+WEB_PORT={{ pihole_web_port }}

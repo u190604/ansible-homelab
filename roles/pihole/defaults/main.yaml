@@ -4,6 +4,17 @@ pihole_dns_port: 53
 pihole_firewalld_manage: true
 pihole_install_script_path: '/tmp/pihole-basic-install.sh'
 pihole_install_script_url: 'https://install.pi-hole.net'
+pihole_preseed_setup_vars: true
+pihole_setup_vars_dns_1: '1.1.1.1'
+pihole_setup_vars_dns_2: '1.0.0.1'
+pihole_setup_vars_install_web_interface: true
+pihole_setup_vars_install_web_server: true
+pihole_setup_vars_interface: '{{ ansible_default_ipv4.interface | default("eth0") }}'
+pihole_setup_vars_ipv4_address: >-
+  {{ (ansible_default_ipv4.address | default("") | length > 0) |
+      ternary(ansible_default_ipv4.address ~ "/" ~
+      (ansible_default_ipv4.prefix | default("24")), "") }}
+pihole_setup_vars_query_logging: true
 pihole_skip_os_check: true
 pihole_service_group: 'pihole'
 pihole_service_home: '/opt/pihole'

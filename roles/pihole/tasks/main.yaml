@@ -42,6 +42,40 @@
     path: '/usr/local/bin/pihole'
   register: pihole_cli_stat
 
+- name: Validate pihole setup vars include IPv4 address
+  ansible.builtin.assert:
+    that:
+      - pihole_setup_vars_ipv4_address | length > 0
+    fail_msg: 'Set pihole_setup_vars_ipv4_address for unattended install.'
+    success_msg: 'Pi-hole setup vars include IPv4 address.'
+  when:
+    - not pihole_cli_stat.stat.exists
+    - pihole_preseed_setup_vars | bool
+
+- name: Ensure pihole config directory exists
+  ansible.builtin.file:
+    path: '/etc/pihole'
+    state: directory
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+  become: true
+  when:
+    - not pihole_cli_stat.stat.exists
+    - pihole_preseed_setup_vars | bool
+
+- name: Create pihole setup vars for unattended install
+  ansible.builtin.template:
+    src: 'setupVars.conf.j2'
+    dest: '/etc/pihole/setupVars.conf'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  become: true
+  when:
+    - not pihole_cli_stat.stat.exists
+    - pihole_preseed_setup_vars | bool
+
 - name: Download pihole installer
   ansible.builtin.get_url:
     url: '{{ pihole_install_script_url }}'
