@@ -1,6 +1,16 @@
 ---
 apt_common_packages: []
 
+common_account_group_name: ''
+common_account_group_system: false
+common_account_user_comment: ''
+common_account_user_create_home: true
+common_account_user_home: '/home/{{ common_account_user_name }}'
+common_account_user_name: ''
+common_account_user_shell: '/bin/bash'
+common_account_user_system: false
+common_account_user_type: ''
+
 common_python_packages:
   - 'python{{ common_python_version }}'
   - 'python{{ common_python_version }}-pip'

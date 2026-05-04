@@ -1,0 +1,35 @@
+---
+- name: Validate account creation variables
+  ansible.builtin.assert:
+    that:
+      - common_account_group_name is string
+      - common_account_group_name | length > 0
+      - common_account_user_name is string
+      - common_account_user_name | length > 0
+      - common_account_user_type is string
+      - common_account_user_type in ['', 'regular', 'system']
+    fail_msg: >-
+      Set common_account_group_name and common_account_user_name before
+      including common/tasks/create_user_and_group.yaml
+
+- name: Ensure target group exists
+  ansible.builtin.group:
+    name: '{{ common_account_group_name }}'
+    state: present
+    system: '{{ common_account_group_system }}'
+
+- name: Ensure target user exists
+  ansible.builtin.user:
+    name: '{{ common_account_user_name }}'
+    comment: '{{ common_account_user_comment }}'
+    create_home: '{{ common_account_user_create_home }}'
+    group: '{{ common_account_group_name }}'
+    home: '{{ common_account_user_home }}'
+    shell: '{{ common_account_user_shell }}'
+    state: present
+    system: >-
+      {{
+        (common_account_user_type == 'system')
+        if common_account_user_type | length > 0
+        else common_account_user_system
+      }}

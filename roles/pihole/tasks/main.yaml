@@ -1,0 +1,121 @@
+---
+- name: 'Display role start message'
+  ansible.builtin.debug:
+    msg: >-
+      Starting role on {{ inventory_hostname }}
+      (env={{ env_name | default("N/A") }})
+
+- name: Ensure play runs on RHEL-family OS
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'RedHat'
+    fail_msg: 'Role supports RHEL-family only.'
+    success_msg: 'RHEL-family detected.'
+
+- name: Create pihole service account and group
+  ansible.builtin.include_role:
+    apply:
+      become: true
+    name: common
+    tasks_from: 'create_user_and_group'
+  vars:
+    common_account_group_name: '{{ pihole_service_group }}'
+    common_account_group_system: true
+    common_account_user_comment: 'Service account for Pi-hole files'
+    common_account_user_create_home: true
+    common_account_user_home: '{{ pihole_service_home }}'
+    common_account_user_name: '{{ pihole_service_user }}'
+    common_account_user_shell: '/sbin/nologin'
+    common_account_user_type: 'system'
+
+- name: Ensure pihole service home exists
+  ansible.builtin.file:
+    path: '{{ pihole_service_home }}'
+    state: directory
+    owner: '{{ pihole_service_user }}'
+    group: '{{ pihole_service_group }}'
+    mode: '0750'
+  become: true
+
+- name: Check pihole CLI installation status
+  ansible.builtin.stat:
+    path: '/usr/local/bin/pihole'
+  register: pihole_cli_stat
+
+- name: Download pihole installer
+  ansible.builtin.get_url:
+    url: '{{ pihole_install_script_url }}'
+    dest: '{{ pihole_install_script_path }}'
+    mode: '0755'
+  become: true
+  when: not pihole_cli_stat.stat.exists
+
+- name: Install pihole application
+  ansible.builtin.command:
+    cmd: 'bash {{ pihole_install_script_path }} --unattended'
+    creates: '/usr/local/bin/pihole'
+  become: true
+  environment:
+    PIHOLE_SELINUX: >-
+      {{ pihole_acknowledge_selinux | ternary("true", "false") }}
+    PIHOLE_SKIP_OS_CHECK: >-
+      {{ pihole_skip_os_check | ternary("true", "false") }}
+  when:
+    - not ansible_check_mode
+    - not pihole_cli_stat.stat.exists
+
+- name: Set pihole web password
+  ansible.builtin.command:
+    argv:
+      - 'pihole'
+      - 'setpassword'
+      - '{{ pihole_web_password }}'
+  become: true
+  changed_when: true
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - pihole_web_password | length > 0
+
+- name: Install firewalld package
+  ansible.builtin.dnf:
+    name:
+      - 'firewalld'
+    state: present
+    update_cache: true
+  become: true
+  when: pihole_firewalld_manage | bool
+
+- name: Ensure firewalld service enabled
+  ansible.builtin.systemd:
+    name: 'firewalld'
+    enabled: true
+    state: started
+  become: true
+  when: pihole_firewalld_manage | bool
+
+- name: Open pihole firewall ports
+  ansible.posix.firewalld:
+    port: '{{ item.port }}/{{ item.protocol }}'
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - port: '{{ pihole_dns_port }}'
+      protocol: 'tcp'
+    - port: '{{ pihole_dns_port }}'
+      protocol: 'udp'
+    - port: '{{ pihole_web_port }}'
+      protocol: 'tcp'
+  become: true
+  notify:
+    - Reload firewalld
+  when: pihole_firewalld_manage | bool
+
+- name: Enable and start pihole FTL service
+  ansible.builtin.systemd:
+    name: 'pihole-FTL'
+    enabled: true
+    state: started
+  become: true
+  when: not ansible_check_mode

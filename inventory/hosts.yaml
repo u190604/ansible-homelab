@@ -6,6 +6,10 @@ all:
 
     lnx02:
       ansible_host: 192.168.1.202
+
+    lnx150:
+      ansible_host: 192.168.1.150
+
   children:
     # Environments
     dev:
@@ -17,6 +21,9 @@ all:
 
         lnx02:
           ansible_host: 192.168.1.202
+
+        lnx150:
+          ansible_host: 192.168.1.150  
 
     prod:
       vars:
@@ -47,3 +54,8 @@ all:
       hosts:
         127.0.0.1:
           ansible_connection: local
+
+    pihole:
+      hosts:
+        lnx150:
+          ansible_host: 192.168.1.150  

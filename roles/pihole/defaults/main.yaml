@@ -1,0 +1,12 @@
+---
+pihole_acknowledge_selinux: true
+pihole_dns_port: 53
+pihole_firewalld_manage: true
+pihole_install_script_path: '/tmp/pihole-basic-install.sh'
+pihole_install_script_url: 'https://install.pi-hole.net'
+pihole_skip_os_check: true
+pihole_service_group: 'pihole'
+pihole_service_home: '/opt/pihole'
+pihole_service_user: 'pihole'
+pihole_web_password: ''
+pihole_web_port: 80

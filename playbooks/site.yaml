@@ -23,3 +23,11 @@
     - podman
     - gitea
     - pgadmin
+
+- name: 'Configure pihole hosts'
+  hosts: pihole
+  gather_facts: true
+
+  roles:
+    - common
+    - pihole

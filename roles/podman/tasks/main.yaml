@@ -1,7 +1,9 @@
 ---
 - name: 'Display role start message'
   ansible.builtin.debug:
-    msg: 'Starting role on {{ inventory_hostname }} (env={{ env_name | default("N/A") }})'
+    msg: >-
+      Starting role on {{ inventory_hostname }}
+      (env={{ env_name | default("N/A") }})
 
 - name: Ensure play runs on RHEL-family OS
   ansible.builtin.assert:
@@ -26,21 +28,20 @@
   register: podman_optional_result
   when: podman_optional_packages | length > 0
 
-- name: Ensure podman group exists
-  ansible.builtin.group:
-    name: '{{ podman_group }}'
-    state: present
-
-- name: Ensure non-interactive podman user exists
-  ansible.builtin.user:
-    name: '{{ podman_user }}'
-    group: '{{ podman_group }}'
-    home: '{{ podman_home }}'
-    comment: 'Service account for running rootless Podman containers'
-    create_home: true
-    system: true
-    shell: /sbin/nologin
-    state: present
+- name: Create podman service account and group
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: 'create_user_and_group'
+  vars:
+    common_account_group_name: '{{ podman_group }}'
+    common_account_group_system: true
+    common_account_user_comment: >-
+      Service account for running rootless Podman containers
+    common_account_user_create_home: true
+    common_account_user_home: '{{ podman_home }}'
+    common_account_user_name: '{{ podman_user }}'
+    common_account_user_shell: '/sbin/nologin'
+    common_account_user_type: 'system'
 
 - name: Ensure podman remote temp directory exists
   ansible.builtin.file:
@@ -55,7 +56,9 @@
     path: /etc/subuid
     create: true
     regexp: '^{{ podman_user }}:'
-    line: '{{ podman_user }}:{{ podman_subuid_start }}:{{ podman_subuid_count }}'
+    line: >-
+      {{ podman_user }}:{{ podman_subuid_start }}:{{
+      podman_subuid_count }}
     state: present
 
 - name: Ensure subgid mapping exists
@@ -63,7 +66,9 @@
     path: /etc/subgid
     create: true
     regexp: '^{{ podman_user }}:'
-    line: '{{ podman_user }}:{{ podman_subuid_start }}:{{ podman_subuid_count }}'
+    line: >-
+      {{ podman_user }}:{{ podman_subuid_start }}:{{
+      podman_subuid_count }}
     state: present
 
 - name: 'Create Quadlet directory for {{ podman_user }} user'
